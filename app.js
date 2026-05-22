@@ -186,9 +186,9 @@ function applyFaceShape(frame) {
 
   if (eyes > 0) {
     const faceWidth = distance(points.leftCheek, points.rightCheek);
-    const radius = faceWidth * 0.16;
-    localScale(frame, points.leftEye, radius, eyes * 0.26);
-    localScale(frame, points.rightEye, radius, eyes * 0.26);
+    const radius = faceWidth * 0.19;
+    localScale(frame, points.leftEye, radius, eyes * 0.42);
+    localScale(frame, points.rightEye, radius, eyes * 0.42);
   }
 }
 
@@ -341,13 +341,23 @@ function makeLowerFaceMask(points, faceWidth) {
   const radiusY = distance(points.nose, points.chin) * 1.08;
   const top = points.nose.y - faceWidth * 0.04;
   const bottom = points.chin.y + faceWidth * 0.08;
+  const edgeSoftness = faceWidth * 0.085;
 
   return (x, y) => {
-    if (y < top || y > bottom) return false;
-    if (!pointInPolygon(x, y, points.faceOval)) return false;
+    if (y < top || y > bottom) return 0;
+    if (!pointInPolygon(x, y, points.faceOval)) return 0;
+
     const nx = (x - center.x) / radiusX;
     const ny = (y - center.y) / radiusY;
-    return nx * nx + ny * ny <= 1.08;
+    const ellipseDistance = Math.sqrt(nx * nx + ny * ny);
+    if (ellipseDistance > 1.04) return 0;
+
+    const ovalDistance = distanceToPolygonEdges(x, y, points.faceOval);
+    const edgeWeight = smoothstep(0, edgeSoftness, ovalDistance);
+    const ellipseWeight = 1 - smoothstep(0.82, 1.04, ellipseDistance);
+    const verticalWeight = smoothstep(top, top + edgeSoftness, y) * (1 - smoothstep(bottom - edgeSoftness, bottom, y));
+
+    return Math.min(edgeWeight, ellipseWeight, verticalWeight);
   };
 }
 
@@ -360,15 +370,17 @@ function localTranslate(frame, center, radius, moveX, moveY, strength, mask = nu
 
   for (let y = top; y <= bottom; y += 1) {
     for (let x = left; x <= right; x += 1) {
-      if (mask && !mask(x, y)) continue;
+      const maskWeight = mask ? mask(x, y) : 1;
+      if (maskWeight <= 0) continue;
       const dx = x - center.x;
       const dy = y - center.y;
       const dist = Math.hypot(dx, dy);
       if (dist > radius) continue;
-      const weight = Math.pow(1 - dist / radius, 2) * strength;
+      const weight = Math.pow(1 - dist / radius, 2) * strength * maskWeight;
       const sampleX = x - moveX * weight;
       const sampleY = y - moveY * weight;
-      if (mask && !mask(sampleX, sampleY)) continue;
+      const sampleMaskWeight = mask ? mask(sampleX, sampleY) : 1;
+      if (sampleMaskWeight <= 0) continue;
       sampleInto(frame.data, source, frame.width, frame.height, x, y, sampleX, sampleY);
     }
   }
@@ -446,6 +458,35 @@ function pointInPolygon(x, y, polygon) {
   }
 
   return inside;
+}
+
+function distanceToPolygonEdges(x, y, polygon) {
+  let closest = Infinity;
+
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i, i += 1) {
+    closest = Math.min(closest, distanceToSegment(x, y, polygon[j], polygon[i]));
+  }
+
+  return closest;
+}
+
+function distanceToSegment(x, y, a, b) {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const lengthSquared = dx * dx + dy * dy || 1;
+  const t = Math.max(0, Math.min(1, ((x - a.x) * dx + (y - a.y) * dy) / lengthSquared));
+  const projectionX = a.x + t * dx;
+  const projectionY = a.y + t * dy;
+  return Math.hypot(x - projectionX, y - projectionY);
+}
+
+function smoothstep(edge0, edge1, value) {
+  const t = clamp01((value - edge0) / (edge1 - edge0 || 1));
+  return t * t * (3 - 2 * t);
+}
+
+function clamp01(value) {
+  return Math.max(0, Math.min(1, value));
 }
 
 function distance(a, b) {
