@@ -46,6 +46,14 @@
             <span>紅潤</span>
             <input id="blush" type="range" min="0" max="100" value="22" />
           </label>
+          <label>
+            <span>瘦臉</span>
+            <input id="slimFace" type="range" min="0" max="100" value="0" />
+          </label>
+          <label>
+            <span>大眼</span>
+            <input id="bigEyes" type="range" min="0" max="100" value="0" />
+          </label>
         </div>
 
         <div class="action-row">
@@ -67,6 +75,7 @@
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
