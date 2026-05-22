@@ -56,6 +56,15 @@
       </section>
     </main>
 
+    <section id="photoSheet" class="photo-sheet" hidden aria-label="照片預覽">
+      <div class="photo-sheet-bar">
+        <button id="closePhotoButton" class="text-button" type="button">關閉</button>
+        <a id="downloadPhotoLink" class="text-button" download>下載</a>
+      </div>
+      <img id="photoPreview" alt="拍好的照片" />
+      <p>在 iPhone 上可長按圖片，選「儲存到照片」。</p>
+    </section>
+
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
     <script src="app.js"></script>

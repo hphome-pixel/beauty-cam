@@ -8,6 +8,10 @@ const retryButton = document.querySelector("#retryButton");
 const flipButton = document.querySelector("#flipButton");
 const captureButton = document.querySelector("#captureButton");
 const saveButton = document.querySelector("#saveButton");
+const photoSheet = document.querySelector("#photoSheet");
+const photoPreview = document.querySelector("#photoPreview");
+const closePhotoButton = document.querySelector("#closePhotoButton");
+const downloadPhotoLink = document.querySelector("#downloadPhotoLink");
 const toast = document.querySelector("#toast");
 
 const controls = {
@@ -20,6 +24,7 @@ let stream = null;
 let facingMode = "user";
 let currentFilter = "natural";
 let latestPhotoUrl = "";
+let latestPhotoDataUrl = "";
 let animationFrame = 0;
 let previewWidth = 720;
 let previewHeight = 1280;
@@ -202,24 +207,23 @@ function capturePhoto() {
 
   photo.toBlob((blob) => {
     latestPhotoUrl = URL.createObjectURL(blob);
+    latestPhotoDataUrl = photo.toDataURL("image/jpeg", 0.94);
+    photoPreview.src = latestPhotoDataUrl;
+    downloadPhotoLink.href = latestPhotoDataUrl;
+    downloadPhotoLink.download = `beauty-cam-${Date.now()}.jpg`;
     saveButton.disabled = false;
-    showToast("已拍照，可以按右下儲存");
+    showToast("已拍照，按右下角查看");
   }, "image/jpeg", 0.94);
 }
 
 function savePhoto() {
-  if (!latestPhotoUrl) {
+  if (!latestPhotoDataUrl) {
     showToast("還沒有照片");
     return;
   }
 
-  const link = document.createElement("a");
-  link.href = latestPhotoUrl;
-  link.download = `beauty-cam-${Date.now()}.jpg`;
-  document.body.append(link);
-  link.click();
-  link.remove();
-  showToast("照片已輸出");
+  photoSheet.hidden = false;
+  showToast("長按圖片可存到照片");
 }
 
 document.querySelector("#filterRow").addEventListener("click", (event) => {
@@ -234,6 +238,9 @@ startButton.addEventListener("click", startCamera);
 retryButton.addEventListener("click", startCamera);
 captureButton.addEventListener("click", capturePhoto);
 saveButton.addEventListener("click", savePhoto);
+closePhotoButton.addEventListener("click", () => {
+  photoSheet.hidden = true;
+});
 flipButton.addEventListener("click", () => {
   facingMode = facingMode === "user" ? "environment" : "user";
   startCamera();
