@@ -114,6 +114,10 @@ function drawLoop() {
   animationFrame = window.requestAnimationFrame(drawLoop);
 }
 
+function isMirrored() {
+  return facingMode === "user";
+}
+
 async function setupFaceMesh() {
   if (faceMesh || faceModelLoading || !window.FaceMesh) return;
   faceModelLoading = true;
@@ -160,12 +164,17 @@ function applyFaceShape(frame) {
 
   if (slim > 0) {
     const faceWidth = distance(points.leftCheek, points.rightCheek);
-    const radius = faceWidth * 0.34;
-    const pull = faceWidth * 0.09 * slim;
-    localTranslate(frame, points.leftCheek, radius, pull, 0, 1);
-    localTranslate(frame, points.rightCheek, radius, -pull, 0, 1);
-    localTranslate(frame, points.jawLeft, radius * 0.76, pull * 0.72, -pull * 0.16, 0.9);
-    localTranslate(frame, points.jawRight, radius * 0.76, -pull * 0.72, -pull * 0.16, 0.9);
+    const radius = faceWidth * 0.36;
+    const pull = faceWidth * 0.15 * slim;
+    const leftMove = vectorToward(points.leftCheek, points.faceCenter, pull);
+    const rightMove = vectorToward(points.rightCheek, points.faceCenter, pull);
+    const jawLeftMove = vectorToward(points.jawLeft, points.faceCenter, pull * 0.72);
+    const jawRightMove = vectorToward(points.jawRight, points.faceCenter, pull * 0.72);
+
+    localTranslate(frame, points.leftCheek, radius, leftMove.x, leftMove.y, 1);
+    localTranslate(frame, points.rightCheek, radius, rightMove.x, rightMove.y, 1);
+    localTranslate(frame, points.jawLeft, radius * 0.74, jawLeftMove.x, jawLeftMove.y, 0.9);
+    localTranslate(frame, points.jawRight, radius * 0.74, jawRightMove.x, jawRightMove.y, 0.9);
   }
 
   if (eyes > 0) {
@@ -181,8 +190,9 @@ function mapFacePoints(targetWidth, targetHeight) {
   const pick = (index) => {
     const point = latestLandmarks[index];
     if (!point) return null;
+    const mappedX = (point.x * video.videoWidth - transform.sourceX) * transform.scaleX;
     return {
-      x: (point.x * video.videoWidth - transform.sourceX) * transform.scaleX,
+      x: isMirrored() ? targetWidth - mappedX : mappedX,
       y: (point.y * video.videoHeight - transform.sourceY) * transform.scaleY,
     };
   };
@@ -196,12 +206,17 @@ function mapFacePoints(targetWidth, targetHeight) {
     leftEyeInner: pick(133),
     rightEyeOuter: pick(362),
     rightEyeInner: pick(263),
+    nose: pick(1),
   };
 
   if (Object.values(points).some((point) => !point)) return null;
 
+  const faceCenter = midpoint(points.leftCheek, points.rightCheek);
+  faceCenter.y = points.nose.y;
+
   return {
     ...points,
+    faceCenter,
     leftEye: midpoint(points.leftEyeOuter, points.leftEyeInner),
     rightEye: midpoint(points.rightEyeOuter, points.rightEyeInner),
   };
@@ -283,6 +298,13 @@ function beautify(data) {
 
 function drawVideoCover(targetCtx, targetWidth, targetHeight) {
   const cover = getCoverTransform(targetWidth, targetHeight);
+  const mirrored = isMirrored();
+
+  targetCtx.save();
+  if (mirrored) {
+    targetCtx.translate(targetWidth, 0);
+    targetCtx.scale(-1, 1);
+  }
 
   targetCtx.drawImage(
     video,
@@ -295,6 +317,7 @@ function drawVideoCover(targetCtx, targetWidth, targetHeight) {
     targetWidth,
     targetHeight,
   );
+  targetCtx.restore();
 }
 
 function localTranslate(frame, center, radius, moveX, moveY, strength) {
@@ -367,6 +390,16 @@ function midpoint(a, b) {
 
 function distance(a, b) {
   return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function vectorToward(from, to, amount) {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const length = Math.hypot(dx, dy) || 1;
+  return {
+    x: (dx / length) * amount,
+    y: (dy / length) * amount,
+  };
 }
 
 function clamp(value) {

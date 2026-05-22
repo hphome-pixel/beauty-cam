@@ -62,10 +62,6 @@ input {
   pointer-events: none;
 }
 
-#preview {
-  transform: scaleX(-1);
-}
-
 .empty-state,
 .permission-state {
   position: absolute;
