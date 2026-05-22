@@ -44,6 +44,11 @@ const filterSettings = {
   mono: { brightness: 6, contrast: 1.12, saturation: 0, warmth: 0, fade: 0 },
 };
 
+const FACE_OVAL_POINTS = [
+  10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377,
+  152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109,
+];
+
 function showToast(message) {
   toast.textContent = message;
   toast.classList.add("show");
@@ -213,8 +218,9 @@ function mapFacePoints(targetWidth, targetHeight) {
     mouthLeft: pick(61),
     mouthRight: pick(291),
   };
+  const faceOval = FACE_OVAL_POINTS.map((index) => pick(index));
 
-  if (Object.values(points).some((point) => !point)) return null;
+  if (Object.values(points).some((point) => !point) || faceOval.some((point) => !point)) return null;
 
   const faceCenter = midpoint(points.leftCheek, points.rightCheek);
   faceCenter.y = points.nose.y;
@@ -222,6 +228,7 @@ function mapFacePoints(targetWidth, targetHeight) {
   return {
     ...points,
     faceCenter,
+    faceOval,
     lowerFaceCenter: midpoint(points.nose, points.chin),
     leftLowerCheek: weightedPoint(points.jawLeft, points.mouthLeft, 0.44),
     rightLowerCheek: weightedPoint(points.jawRight, points.mouthRight, 0.44),
@@ -337,6 +344,7 @@ function makeLowerFaceMask(points, faceWidth) {
 
   return (x, y) => {
     if (y < top || y > bottom) return false;
+    if (!pointInPolygon(x, y, points.faceOval)) return false;
     const nx = (x - center.x) / radiusX;
     const ny = (y - center.y) / radiusY;
     return nx * nx + ny * ny <= 1.08;
@@ -358,7 +366,10 @@ function localTranslate(frame, center, radius, moveX, moveY, strength, mask = nu
       const dist = Math.hypot(dx, dy);
       if (dist > radius) continue;
       const weight = Math.pow(1 - dist / radius, 2) * strength;
-      sampleInto(frame.data, source, frame.width, frame.height, x, y, x - moveX * weight, y - moveY * weight);
+      const sampleX = x - moveX * weight;
+      const sampleY = y - moveY * weight;
+      if (mask && !mask(sampleX, sampleY)) continue;
+      sampleInto(frame.data, source, frame.width, frame.height, x, y, sampleX, sampleY);
     }
   }
 }
@@ -417,6 +428,24 @@ function weightedPoint(a, b, amountTowardB) {
     x: a.x + (b.x - a.x) * amountTowardB,
     y: a.y + (b.y - a.y) * amountTowardB,
   };
+}
+
+function pointInPolygon(x, y, polygon) {
+  let inside = false;
+
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i, i += 1) {
+    const current = polygon[i];
+    const previous = polygon[j];
+    const crosses = current.y > y !== previous.y > y;
+    if (!crosses) continue;
+
+    const intersectX =
+      ((previous.x - current.x) * (y - current.y)) / (previous.y - current.y || 0.0001) +
+      current.x;
+    if (x < intersectX) inside = !inside;
+  }
+
+  return inside;
 }
 
 function distance(a, b) {
