@@ -1,0 +1,233 @@
+:root {
+  color-scheme: dark;
+  --bg: #080808;
+  --panel: rgba(18, 18, 18, 0.82);
+  --line: rgba(255, 255, 255, 0.14);
+  --text: #f7f7f4;
+  --muted: rgba(247, 247, 244, 0.68);
+  --accent: #f76f95;
+  --accent-2: #78d9c4;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.app-shell {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  overflow: hidden;
+  background: #080808;
+}
+
+.camera-stage {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 28%, rgba(255, 255, 255, 0.1), transparent 34%),
+    #070707;
+}
+
+#camera,
+#preview {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+#camera {
+  opacity: 0;
+  pointer-events: none;
+}
+
+#preview {
+  transform: scaleX(-1);
+}
+
+.empty-state,
+.permission-state {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 14px;
+  padding: 32px;
+  text-align: center;
+  background: linear-gradient(180deg, rgba(8, 8, 8, 0.1), rgba(8, 8, 8, 0.8));
+}
+
+.empty-state h1 {
+  margin: 0;
+  font-size: clamp(36px, 10vw, 68px);
+  letter-spacing: 0;
+}
+
+.empty-state p,
+.permission-state p {
+  margin: 0;
+  max-width: 280px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.controls {
+  padding: 12px 12px calc(14px + env(safe-area-inset-bottom));
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+  backdrop-filter: blur(18px);
+}
+
+.filter-row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(72px, 1fr);
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 10px;
+  scrollbar-width: none;
+}
+
+.filter-row::-webkit-scrollbar {
+  display: none;
+}
+
+.filter-chip {
+  height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.08);
+  white-space: nowrap;
+}
+
+.filter-chip.active {
+  border-color: rgba(247, 111, 149, 0.9);
+  background: rgba(247, 111, 149, 0.22);
+}
+
+.slider-panel {
+  display: grid;
+  gap: 10px;
+  padding: 10px 2px 12px;
+}
+
+.slider-panel label {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.action-row {
+  display: grid;
+  grid-template-columns: 54px 1fr 54px;
+  align-items: center;
+  gap: 14px;
+}
+
+.primary-button,
+.secondary-button,
+.icon-button,
+.capture-button {
+  border: 0;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.primary-button,
+.secondary-button {
+  min-height: 46px;
+  padding: 0 20px;
+  border-radius: 8px;
+}
+
+.primary-button {
+  background: linear-gradient(135deg, var(--accent), #ffb36b);
+  color: #111;
+  font-weight: 700;
+}
+
+.secondary-button,
+.icon-button {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--line);
+}
+
+.icon-button {
+  width: 54px;
+  height: 46px;
+  border-radius: 8px;
+  font-size: 24px;
+  display: grid;
+  place-items: center;
+}
+
+.icon-button:disabled {
+  opacity: 0.42;
+}
+
+.capture-button {
+  justify-self: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at center, #fff 0 48%, transparent 50%),
+    linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.16);
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(150px + env(safe-area-inset-bottom));
+  transform: translateX(-50%) translateY(12px);
+  max-width: calc(100% - 32px);
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(20, 20, 20, 0.92);
+  color: var(--text);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+@media (min-width: 760px) {
+  .app-shell {
+    max-width: 430px;
+    max-height: 920px;
+    margin: 0 auto;
+    border-inline: 1px solid var(--line);
+  }
+}

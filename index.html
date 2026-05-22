@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#111111" />
+    <title>Beauty Cam</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="camera-stage" aria-label="相機預覽">
+        <video id="camera" autoplay playsinline muted></video>
+        <canvas id="preview"></canvas>
+        <div id="emptyState" class="empty-state">
+          <h1>Beauty Cam</h1>
+          <p>開啟相機後可以即時套濾鏡和美顏。</p>
+          <button id="startButton" class="primary-button" type="button">開啟相機</button>
+        </div>
+        <div id="permissionState" class="permission-state" hidden>
+          <p>Safari 需要允許相機權限才能使用。</p>
+          <button id="retryButton" class="secondary-button" type="button">再試一次</button>
+        </div>
+      </section>
+
+      <section class="controls" aria-label="美顏控制">
+        <div class="filter-row" id="filterRow">
+          <button class="filter-chip active" data-filter="natural" type="button">自然</button>
+          <button class="filter-chip" data-filter="pink" type="button">粉嫩</button>
+          <button class="filter-chip" data-filter="cool" type="button">冷白</button>
+          <button class="filter-chip" data-filter="film" type="button">膠片</button>
+          <button class="filter-chip" data-filter="mono" type="button">黑白</button>
+        </div>
+
+        <div class="slider-panel">
+          <label>
+            <span>磨皮</span>
+            <input id="smoothness" type="range" min="0" max="100" value="35" />
+          </label>
+          <label>
+            <span>美白</span>
+            <input id="whitening" type="range" min="0" max="100" value="30" />
+          </label>
+          <label>
+            <span>紅潤</span>
+            <input id="blush" type="range" min="0" max="100" value="22" />
+          </label>
+        </div>
+
+        <div class="action-row">
+          <button id="flipButton" class="icon-button" type="button" aria-label="切換鏡頭">↺</button>
+          <button id="captureButton" class="capture-button" type="button" aria-label="拍照"></button>
+          <button id="saveButton" class="icon-button" type="button" aria-label="儲存照片" disabled>↓</button>
+        </div>
+      </section>
+    </main>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
