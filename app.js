@@ -164,17 +164,19 @@ function applyFaceShape(frame) {
 
   if (slim > 0) {
     const faceWidth = distance(points.leftCheek, points.rightCheek);
-    const radius = faceWidth * 0.36;
-    const pull = faceWidth * 0.15 * slim;
-    const leftMove = vectorToward(points.leftCheek, points.faceCenter, pull);
-    const rightMove = vectorToward(points.rightCheek, points.faceCenter, pull);
+    const lowerFaceMask = makeLowerFaceMask(points, faceWidth);
+    const cheekRadius = faceWidth * 0.24;
+    const jawRadius = faceWidth * 0.2;
+    const pull = faceWidth * 0.13 * slim;
+    const leftMove = vectorToward(points.leftLowerCheek, points.faceCenter, pull);
+    const rightMove = vectorToward(points.rightLowerCheek, points.faceCenter, pull);
     const jawLeftMove = vectorToward(points.jawLeft, points.faceCenter, pull * 0.72);
     const jawRightMove = vectorToward(points.jawRight, points.faceCenter, pull * 0.72);
 
-    localTranslate(frame, points.leftCheek, radius, leftMove.x, leftMove.y, 1);
-    localTranslate(frame, points.rightCheek, radius, rightMove.x, rightMove.y, 1);
-    localTranslate(frame, points.jawLeft, radius * 0.74, jawLeftMove.x, jawLeftMove.y, 0.9);
-    localTranslate(frame, points.jawRight, radius * 0.74, jawRightMove.x, jawRightMove.y, 0.9);
+    localTranslate(frame, points.leftLowerCheek, cheekRadius, leftMove.x, leftMove.y, 0.95, lowerFaceMask);
+    localTranslate(frame, points.rightLowerCheek, cheekRadius, rightMove.x, rightMove.y, 0.95, lowerFaceMask);
+    localTranslate(frame, points.jawLeft, jawRadius, jawLeftMove.x, jawLeftMove.y, 0.72, lowerFaceMask);
+    localTranslate(frame, points.jawRight, jawRadius, jawRightMove.x, jawRightMove.y, 0.72, lowerFaceMask);
   }
 
   if (eyes > 0) {
@@ -207,6 +209,9 @@ function mapFacePoints(targetWidth, targetHeight) {
     rightEyeOuter: pick(362),
     rightEyeInner: pick(263),
     nose: pick(1),
+    chin: pick(152),
+    mouthLeft: pick(61),
+    mouthRight: pick(291),
   };
 
   if (Object.values(points).some((point) => !point)) return null;
@@ -217,6 +222,9 @@ function mapFacePoints(targetWidth, targetHeight) {
   return {
     ...points,
     faceCenter,
+    lowerFaceCenter: midpoint(points.nose, points.chin),
+    leftLowerCheek: weightedPoint(points.jawLeft, points.mouthLeft, 0.44),
+    rightLowerCheek: weightedPoint(points.jawRight, points.mouthRight, 0.44),
     leftEye: midpoint(points.leftEyeOuter, points.leftEyeInner),
     rightEye: midpoint(points.rightEyeOuter, points.rightEyeInner),
   };
@@ -320,7 +328,22 @@ function drawVideoCover(targetCtx, targetWidth, targetHeight) {
   targetCtx.restore();
 }
 
-function localTranslate(frame, center, radius, moveX, moveY, strength) {
+function makeLowerFaceMask(points, faceWidth) {
+  const center = points.lowerFaceCenter;
+  const radiusX = faceWidth * 0.5;
+  const radiusY = distance(points.nose, points.chin) * 1.08;
+  const top = points.nose.y - faceWidth * 0.04;
+  const bottom = points.chin.y + faceWidth * 0.08;
+
+  return (x, y) => {
+    if (y < top || y > bottom) return false;
+    const nx = (x - center.x) / radiusX;
+    const ny = (y - center.y) / radiusY;
+    return nx * nx + ny * ny <= 1.08;
+  };
+}
+
+function localTranslate(frame, center, radius, moveX, moveY, strength, mask = null) {
   const source = new Uint8ClampedArray(frame.data);
   const left = Math.max(0, Math.floor(center.x - radius));
   const right = Math.min(frame.width - 1, Math.ceil(center.x + radius));
@@ -329,6 +352,7 @@ function localTranslate(frame, center, radius, moveX, moveY, strength) {
 
   for (let y = top; y <= bottom; y += 1) {
     for (let x = left; x <= right; x += 1) {
+      if (mask && !mask(x, y)) continue;
       const dx = x - center.x;
       const dy = y - center.y;
       const dist = Math.hypot(dx, dy);
@@ -385,6 +409,13 @@ function midpoint(a, b) {
   return {
     x: (a.x + b.x) / 2,
     y: (a.y + b.y) / 2,
+  };
+}
+
+function weightedPoint(a, b, amountTowardB) {
+  return {
+    x: a.x + (b.x - a.x) * amountTowardB,
+    y: a.y + (b.y - a.y) * amountTowardB,
   };
 }
 
